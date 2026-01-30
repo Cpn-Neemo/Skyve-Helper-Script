@@ -1,0 +1,97 @@
+#Welcome to the Skyve Linux Install Helper Script. Feel free to modify this script to work with whatever distribution you use etc..
+#No resposibility is taken by me for your saved games, PC, or life. Hope this helps more linux users use the awsome Skyve tool for CSII.
+#Cpn-Neemo
+
+#!/usr/bin/env bash
+set -euo pipefail          # Fail fast on errors / undefined vars
+
+#Welcome message and cautions
+#CODE GOES HERE
+
+#Have you bcked up your game?
+#CODE goes here; yes move on, no please backup your saves games etc... Simple instructions of where to find saves and quit.
+
+#Have you installed Skyve from the ingame mods menu?
+#CODE goes here; yes move on, no please install Skyve mod... Simple instructions to install Skyve mod and quit.
+
+#Again have you backed up your saves
+#CODE goes here; yes move on, no please back no my reposisbilty if something goes wrong an quit.
+
+#Check for steam ID correct output move on, incorrect do you have CSII installed?
+
+#Check if protontricks installed 
+#CODE goes here
+
+#CODE goes here
+#CSII steam id is 949230
+
+#Where is CSII installed? Enter for default
+#CODE goes here
+
+#Where is skyve installed? Enter for default
+#CODE goes here
+
+#Set STEAM_ID variable
+STEAM_ID=949230
+# Ensure the Steam prefix exists before proceeding
+if [[ ! -d "$STEAM_ID" ]]; then
+    echo "ERROR: Steam prefix '$STEAM_ID' not found – aborting."
+    exit 1
+fi
+
+
+
+#Install Dependencies
+
+# -------------------------------------------------
+# Paths (STEAM_ID is defined earlier)
+# -------------------------------------------------
+GAC_DIR="$STEAM_ID/drive_c/windows/Microsoft.NET/assembly/GAC_MSIL"
+DLL_FILE="$GAC_DIR/Microsoft.Windows.Compatibility.dll"
+
+# -------------------------------------------------
+# Helper: check whether .NET 4.8 is present
+# -------------------------------------------------
+net48_installed() {
+    [[ -d "$GAC_DIR" ]] && \
+    [[ -f "$DLL_FILE" ]] && \
+    grep -a -q "v4\.8" "$DLL_FILE"
+}
+
+# -------------------------------------------------
+# Main flow
+# -------------------------------------------------
+if net48_installed; then
+    echo ".NET 4.8 is already installed – continuing."
+else
+    echo "Now installing .NET 4.8 dependency…"
+    protontricks "$STEAM_ID" -q dotnet48 &
+    dotnet_pid=$!
+    wait "$dotnet_pid"
+
+    # Verify the install succeeded
+    if net48_installed; then
+        echo ".NET 4.8 installed successfully – continuing."
+    else
+        echo "ERROR: .NET 4.8 installation failed – quitting."
+        exit 1
+    fi
+fi
+
+# Run Skyve with protontricks-launcher. 
+# steam installation and skyve installation directory may vary. The default is 
+#  `~/.local/share/Steam/steamapps/compatdata/949230/pfx/drive_c/Program Files (x86)/Skyve CS-II` 
+
+#Change these to values from earlier in script
+STEAM_DIR="$HOME/.local/share/Steam"
+SKYVE_PATH="steamapps/compatdata/$STEAM_ID/pfx/drive_c/Program Files (x86)/Skyve CS-II/Skyve.exe"
+
+#Do you want to launch skyve after the script finishes? Yes run below on exit, no skip over
+protontricks-launch --appid $STEAM_ID  "$STEAM_DIR/$SKYVE_PATH"
+
+#Do you want a desktop file created for Skyve protontricks-launcher
+#CODE goes here
+
+#Finished script, remember not to use continue from inside CSII and launch game from within skyve.
+#Make backups of your saves. Auto backs do not always work with Skyve in Linux make sure you check regularly.
+#Share this script if it helped you.
