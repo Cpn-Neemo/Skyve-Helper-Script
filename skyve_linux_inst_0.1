@@ -1,14 +1,14 @@
+#!/usr/bin/env bash
 #Welcome to the Skyve Linux Install Helper Script. Feel free to modify this script to work with whatever distribution you use etc..
-#No resposibility is taken by me for your saved games, PC, or life. Hope this helps more linux users use the awsome Skyve tool for CSII.
+#No resposibility is taken by me for your saved games, PC, or life. Hope this helps more linux users use the awesome Skyve tool for CSII.
 #Cpn-Neemo
 
-#!/usr/bin/env bash
 set -euo pipefail          # Fail fast on errors / undefined vars
 
 #Welcome message and cautions
 #CODE GOES HERE
 
-#Have you bcked up your game?
+#Have you backed up your game?
 #CODE goes here; yes move on, no please backup your saves games etc... Simple instructions of where to find saves and quit.
 
 #Have you installed Skyve from the ingame mods menu?
@@ -31,8 +31,9 @@ set -euo pipefail          # Fail fast on errors / undefined vars
 #Where is skyve installed? Enter for default
 #CODE goes here
 
-#Set STEAM_ID variable
+#Set STEAM_ID variable for CSII
 STEAM_ID=949230
+
 # Ensure the Steam prefix exists before proceeding
 if [[ ! -d "$STEAM_ID" ]]; then
     echo "ERROR: Steam prefix '$STEAM_ID' not found – aborting."
