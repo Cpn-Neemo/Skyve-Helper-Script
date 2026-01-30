@@ -5,6 +5,13 @@
 
 set -euo pipefail          # Fail fast on errors / undefined vars
 
+# -------------------------------------------------
+# Simple logger (adds a HH:MM:SS timestamp)
+# -------------------------------------------------
+log() {
+    printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$*"
+}
+
 #Welcome message and cautions
 #CODE GOES HERE
 
@@ -63,18 +70,18 @@ net48_installed() {
 # Main flow
 # -------------------------------------------------
 if net48_installed; then
-    echo ".NET 4.8 is already installed – continuing."
+    log ".NET 4.8 is already installed – continuing."
 else
-    echo "Now installing .NET 4.8 dependency…"
+    log "Now installing .NET 4.8 dependency…"
     protontricks "$STEAM_ID" -q dotnet48 &
     dotnet_pid=$!
     wait "$dotnet_pid"
 
     # Verify the install succeeded
     if net48_installed; then
-        echo ".NET 4.8 installed successfully – continuing."
+        log ".NET 4.8 installed successfully – continuing."
     else
-        echo "ERROR: .NET 4.8 installation failed – quitting."
+        log "ERROR: .NET 4.8 installation failed – quitting."
         exit 1
     fi
 fi
