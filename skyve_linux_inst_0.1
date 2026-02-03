@@ -25,7 +25,7 @@ log() {
 #CODE goes here; yes move on, no please back no my reposisbilty if something goes wrong an quit.
 
 #Where is Steam installed
-#CODE Goes here
+#CODE Goes here (Add options for common distros default directory)
 #STEAM_DIR=""
 
 # -------------------------------------------------
@@ -47,7 +47,7 @@ fi
 #Where is CSII installed? Enter for default
 #CODE goes here
 
-#Where is skyve installed? Enter for default
+#Where is skyve installed? Enter for default (using the steam directory above as referance)
 #  `~/.local/share/Steam/steamapps/compatdata/949230/pfx/drive_c/Program Files (x86)/Skyve CS-II` 
 #SKYVE_PATH="steamapps/compatdata/$STEAM_ID/pfx/drive_c/Program Files (x86)/Skyve CS-II/Skyve.exe"
 #CODE goes here
@@ -95,7 +95,7 @@ fi
 protontricks-launch --appid $STEAM_ID  "$STEAM_DIR/$SKYVE_PATH"
 
 #Do you want a desktop file created for Skyve protontricks-launcher
-#CODE goes here
+#CODE goes here (using default locations for launchers if distribution slected at steam install location step, otherwise ask where to make file)
 
 #Finished script, remember not to use continue from inside CSII and launch game from within skyve.
 #Make backups of your saves. Auto backs do not always work with Skyve in Linux make sure you check regularly.
