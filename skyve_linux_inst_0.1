@@ -15,18 +15,113 @@ log() {
 #Welcome message and cautions
 #CODE GOES HERE
 
-#Have you backed up your game?
-#CODE goes here; yes move on, no please backup your saves games etc... Simple instructions of where to find saves and quit.
+# --------------------------------------------------------------
+#  Question‑helper functions
+# --------------------------------------------------------------
 
-#Have you installed Skyve from the ingame mods menu?
-#CODE goes here; yes move on, no please install Skyve mod... Simple instructions to install Skyve mod and quit.
+# Utility: print a coloured prompt (green = info, red = warning)
+info()  { printf "\e[32m▶ %s\e[0m\n" "$*"; }
+warn()  { printf "\e[31m⚠ %s\e[0m\n" "$*"; }
 
-#Again have you backed up your saves
-#CODE goes here; yes move on, no please back no my reposisbilty if something goes wrong an quit.
+# Generic yes/no reader -----------------------------------------
+# Returns 0 for yes, 1 for no.
+ask_yes_no() {
+    local prompt="$1"
+    local answer
+    while true; do
+        read -rp "$(printf "\e[36m%s [y/n]: \e[0m" "$prompt")" answer
+        case "${answer,,}" in   # lower‑case
+            y|yes)  return 0 ;;
+            n|no)   return 1 ;;
+            *)      warn "Please answer 'y' or 'n'." ;;
+        esac
+    done
+}
 
-#Where is Steam installed
-#CODE Goes here (Add options for common distros default directory)
-#STEAM_DIR=""
+# ----------------------------------------------------------------
+# 1️⃣  Have you backed up your game?
+# ----------------------------------------------------------------
+check_backup_game() {
+    info "Have you backed up your game saves?"
+    if ask_yes_no "Did you already copy the save files somewhere safe?"; then
+        info "Great – moving on."
+        return 0
+    else
+        warn "Please back up your saves before continuing."
+        echo "Typical save locations for Cities Skylines 2:"
+        echo "  • Linux (Steam):   \$HOME/.local/share/Steam/steamapps/compatdata/<APPID>/pfx/drive_c/users/steamuser/My Documents/Cities_Skylines_2"
+        echo "  • Windows (non‑Steam): %USERPROFILE%\\Documents\\Cities_Skylines_2"
+        echo "Copy the whole folder to another location (USB drive, another folder, cloud sync …) and re‑run the script when done."
+        exit 1   # stop the script until the user backs up
+    fi
+}
+
+# ----------------------------------------------------------------
+# 2️⃣  Have you installed Skyve from the in‑game mods menu?
+# ----------------------------------------------------------------
+check_skyve_installed() {
+    info "Have you installed Skyve from the in‑game mods menu?"
+    if ask_yes_no "Is Skyve already present in your Mods list?"; then
+        info "Skyve is installed – proceeding."
+        return 0
+    else
+        warn "Please install Skyve via the in‑game Mod Manager first."
+        echo "Steps:"
+        echo "  1. Launch Cities Skylines 2."
+        echo "  2. Open the ‘Mods’ tab."
+        echo "  3. Click ‘Browse Workshop’ and search for “Skyve”."
+        echo "  4. Subscribe / Install the mod and wait for it to finish."
+        echo "  5. Return to this terminal and run the script again."
+        exit 1
+    fi
+}
+
+# ----------------------------------------------------------------
+# 3️⃣  Again, have you backed up your saves? (second safety check)
+# ----------------------------------------------------------------
+double_check_backup() {
+    info "One more safety check – have you backed up your saves?"
+    if ask_yes_no "Are you sure the backup is still up‑to‑date?"; then
+        info "Backup confirmed – moving forward."
+        return 0
+    else
+        warn "Please make a fresh backup now. The script will stop."
+        echo "Refer to the paths shown in the first backup reminder."
+        exit 1
+    fi
+}
+
+# ----------------------------------------------------------------
+# 4️⃣  Where is Steam installed? (detect common defaults)
+# ----------------------------------------------------------------
+detect_steam_dir() {
+    local candidates=(
+        "$HOME/.steam/steam"                # typical for most distros
+        "$HOME/.local/share/Steam"          # flatpak/runtime style
+        "/usr/lib/steam"                    # Arch official package
+        "/snap/steam/common/.steam/steam"   # Snap package
+    )
+    local dir
+
+    for dir in "${candidates[@]}"; do
+        if [[ -d "$dir" && -x "$dir/steam" ]]; then
+            STEAM_DIR="$dir"
+            info "Detected Steam installation at: $STEAM_DIR"
+            return 0
+        fi
+    done
+
+    # If we reach here nothing was auto‑detected
+    warn "Could not automatically locate Steam."
+    read -rp "$(printf "\e[36mEnter the full path to your Steam folder: \e[0m")" STEAM_DIR
+    if [[ -d "$STEAM_DIR" && -x "$STEAM_DIR/steam" ]]; then
+        info "Using user‑provided Steam directory: $STEAM_DIR"
+        return 0
+    else
+        warn "That path does not look like a valid Steam installation."
+        exit 1
+    fi
+}
 
 # -------------------------------------------------
 #Set STEAM_ID variable for CSII
