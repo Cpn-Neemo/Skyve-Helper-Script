@@ -95,7 +95,69 @@ fi
 protontricks-launch --appid $STEAM_ID  "$STEAM_DIR/$SKYVE_PATH"
 
 #Do you want a desktop file created for Skyve protontricks-launcher
-#CODE goes here (using default locations for launchers if distribution slected at steam install location step, otherwise ask where to make file)
+# ------------------------------------------------------------------
+# Assumptions (already defined earlier in script):
+#   STEAM_ID      – Steam AppID of the game
+#   STEAM_DIR     – Root directory of the Steam library (e.g. "$HOME/.steam/steam")
+#   SKYVE_PATH    – Relative path inside the Steam library to the Skyve binary
+# ------------------------------------------------------------------
+
+# Full path to the executable that will be launched
+EXECUTABLE="${STEAM_DIR}/${SKYVE_PATH}"
+
+# ------------------------------------------------------------------
+# Choose an icon
+# ------------------------------------------------------------------
+# 1️⃣  Try an icon that sits next to the executable (same basename, .png)
+ICON_CANDIDATE="${EXECUTABLE%.*}.png"
+
+# 2️⃣  If that file does not exist, fall back to a generic icon you ship
+#      (replace the path with wherever you keep a fallback icon)
+FALLBACK_ICON="${HOME}/.local/share/icons/skyve-fallback.png"
+
+# Resolve which icon to use
+if [[ -f "${ICON_CANDIDATE}" ]]; then
+    ICON_PATH="${ICON_CANDIDATE}"
+else
+    ICON_PATH="${FALLBACK_ICON}"
+fi
+
+# ------------------------------------------------------------------
+# Destination for the .desktop file (per‑user, no sudo needed)
+# ------------------------------------------------------------------
+DESKTOP_DIR="${HOME}/.local/share/applications"
+mkdir -p "${DESKTOP_DIR}"
+
+DESKTOP_FILE="${DESKTOP_DIR}/skyve.desktop"
+
+# ------------------------------------------------------------------
+# Write the .desktop entry
+# ------------------------------------------------------------------
+cat > "${DESKTOP_FILE}" <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Skyve
+Comment=Skyve Mod Manager for Cities Skylines 2 (installed with Neemo's Skyve installer script)
+Exec=protontricks-launch --appid ${STEAM_ID} "${EXECUTABLE}"
+Icon=${ICON_PATH}
+Terminal=false
+StartupNotify=true
+Categories=Game;Simulation;
+EOF
+
+# ------------------------------------------------------------------
+# Make sure the file is readable/executable by the desktop environment
+# ------------------------------------------------------------------
+chmod 644 "${DESKTOP_FILE}"
+
+# Optional: force the desktop environment to refresh its cache
+# (most DEs pick up new .desktop files automatically)
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database "${DESKTOP_DIR}"
+fi
+
+echo "✅ Desktop launcher created at: ${DESKTOP_FILE}"
 
 #Finished script, remember not to use continue from inside CSII and launch game from within skyve.
 #Make backups of your saves. Auto backs do not always work with Skyve in Linux make sure you check regularly.
