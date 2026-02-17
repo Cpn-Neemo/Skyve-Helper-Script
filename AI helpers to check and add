@@ -1,0 +1,282 @@
+#!/usr/bin/env bash
+# --------------------------------------------------------------
+#  Skyve Mod Manager installer – with safety‑checks,
+#  Steam detection, and .desktop file creation
+# --------------------------------------------------------------
+
+set -euo pipefail               # stop on errors, treat unset vars as errors
+
+# ==============================================================
+#  Helper utilities (coloured output & generic yes/no reader)
+# ==============================================================
+
+info() { printf "\e[32m▶ %s\e[0m\n" "$*"; }   # green info
+warn() { printf "\e[31m⚠ %s\e[0m\n" "$*"; }   # red warning
+
+ask_yes_no() {
+    local prompt="$1"
+    local ans
+    while true; do
+        read -rp "$(printf "\e[36m%s [y/n]: \e[0m" "$prompt")" ans
+        case "${ans,,}" in
+            y|yes)  return 0 ;;
+            n|no)   return 1 ;;
+            *)      warn "Please answer 'y' or 'n'." ;;
+        esac
+    done
+}
+
+# ==============================================================
+#  1️⃣  Have you backed up your game?
+# ==============================================================
+
+check_backup_game() {
+    info "Have you backed up your game saves?"
+    if ask_yes_no "Did you already copy the save files somewhere safe?"; then
+        info "Great – moving on."
+        return 0
+    else
+        warn "Please back up your saves before continuing."
+        cat <<'EOF'
+
+Typical save locations for Cities Skylines 2:
+  • Linux (Steam):   $HOME/.local/share/Steam/steamapps/compatdata/<APPID>/pfx/drive_c/users/steamuser/My Documents/Cities_Skylines_2
+  • Windows (non‑Steam): %USERPROFILE%\Documents\Cities_Skylines_2
+
+Copy the whole folder to another location (USB drive, another folder, cloud sync …) and re‑run the script when done.
+EOF
+        exit 1
+    fi
+}
+
+# ==============================================================
+#  2️⃣  Have you installed Skyve from the in‑game mods menu?
+# ==============================================================
+
+check_skyve_installed() {
+    info "Have you installed Skyve from the in‑game mods menu?"
+    if ask_yes_no "Is Skyve already present in your Mods list?"; then
+        info "Skyve is installed – proceeding."
+        return 0
+    else
+        warn "Please install Skyve via the in‑game Mod Manager first."
+        cat <<'EOF'
+
+Steps:
+  1. Launch Cities Skylines 2.
+  2. Open the ‘Mods’ tab.
+  3. Click ‘Browse Workshop’ and search for “Skyve”.
+  4. Subscribe / Install the mod and wait for it to finish.
+  5. Return to this terminal and run the script again.
+EOF
+        exit 1
+    fi
+}
+
+# ==============================================================
+#  3️⃣  Again, have you backed up your saves? (second safety check)
+# ==============================================================
+
+double_check_backup() {
+    info "One more safety check – have you backed up your saves?"
+    if ask_yes_no "Are you sure the backup is still up‑to‑date?"; then
+        info "Backup confirmed – moving forward."
+        return 0
+    else
+        warn "Please make a fresh backup now. The script will stop."
+        cat <<'EOF'
+
+Refer to the paths shown in the first backup reminder.
+EOF
+        exit 1
+    fi
+}
+
+# ==============================================================
+#  4️⃣  Where is Steam installed? (detect common defaults)
+# ==============================================================
+
+detect_steam_dir() {
+    info "Detecting Steam installation directory…"
+
+    local candidates=(
+        "$HOME/.steam/steam"                # typical for most distros
+        "$HOME/.local/share/Steam"          # flatpak/runtime style
+        "/usr/lib/steam"                    # Arch official package
+        "/snap/steam/common/.steam/steam"   # Snap package
+    )
+
+    for dir in "${candidates[@]}"; do
+        if [[ -d "$dir" && -x "$dir/steam" ]]; then
+            STEAM_DIR="$dir"
+            info "Detected Steam at: $STEAM_DIR"
+            return 0
+        fi
+    done
+
+    warn "Could not automatically locate Steam."
+    read -rp "$(printf "\e[36mEnter the full path to your Steam folder: \e[0m")" STEAM_DIR
+    if [[ -d "$STEAM_DIR" && -x "$STEAM_DIR/steam" ]]; then
+        info "Using user‑provided Steam directory: $STEAM_DIR"
+        return 0
+    else
+        warn "That path does not look like a valid Steam installation."
+        exit 1
+    fi
+}
+
+# ==============================================================
+#  5️⃣  Verify that protontricks is installed
+# ==============================================================
+
+check_protontricks() {
+    info "Checking for protontricks..."
+    if command -v protontricks >/dev/null 2>&1; then
+        info "protontricks is installed."
+        return 0
+    else
+        warn "protontricks is not installed."
+        cat <<'EOF'
+
+Install it with your package manager, e.g.:
+
+  • Debian/Ubuntu:   sudo apt install protontricks
+  • Fedora:          sudo dnf install protontricks
+  • Arch:            sudo pacman -S protontricks
+  • OpenSUSE:        sudo zypper install protontricks
+
+After installing, re‑run this script.
+EOF
+        exit 1
+    fi
+}
+
+# ==============================================================
+#  6️⃣  Ask where the CS II (Cities Skylines II) prefix lives
+# ==============================================================
+
+ask_csii_prefix() {
+    # Default assumes the usual Steam compatdata layout
+    local default_path="${STEAM_DIR}/steamapps/compatdata/949230/pfx"
+    info "Where is your Cities Skylines II (CS II) Steam prefix?"
+    read -rp "$(printf "\e[36mPress ENTER for default [%s]: \e[0m" "$default_path")" CSII_PREFIX
+    CSII_PREFIX="${CSII_PREFIX:-$default_path}"
+
+    if [[ -d "$CSII_PREFIX" ]]; then
+        info "Using CS II prefix: $CSII_PREFIX"
+    else
+        warn "Directory not found: $CSII_PREFIX"
+        exit 1
+    fi
+}
+
+# ==============================================================
+#  7️⃣  Ask where Skyve is installed (default based on CS II prefix)
+# ==============================================================
+
+ask_skyve_path() {
+    local default_rel="Program Files (x86)/Skyve CS-II"
+    local default_full="${CSII_PREFIX}/drive_c/${default_rel}"
+    info "Where is Skyve installed?"
+    read -rp "$(printf "\e[36mPress ENTER for default [%s]: \e[0m" "$default_full")" SKYVE_FULL
+    SKYVE_FULL="${SKYVE_FULL:-$default_full}"
+
+    if [[ -d "$SKYVE_FULL" ]]; then
+        info "Found Skyve directory: $SKYVE_FULL"
+    else
+        warn "Directory not found: $SKYVE_FULL"
+        exit 1
+    fi
+
+    # Build the relative path that will be used in the .desktop Exec line
+    SKYVE_REL="steamapps/compatdata/949230/pfx/drive_c/${default_rel}/Skyve.exe"
+    # If the user supplied a custom absolute path, compute the relative part:
+    if [[ "$SKYVE_FULL" != "$default_full" ]]; then
+        # Strip the prefix up to ".../steamapps/compatdata/949230/pfx/drive_c/"
+        SKYVE_REL="${SKYVE_FULL#${CSII_PREFIX}/drive_c/}"
+        SKYVE_REL="steamapps/compatdata/949230/pfx/drive_c/${SKYVE_REL}"
+    fi
+}
+
+# ==============================================================
+#  MAIN – run checks, then create the .desktop file
+# ==============================================================
+
+main() {
+    # ----- Safety questions -------------------------------------------------
+    check_backup_game
+    check_skyve_installed
+    double_check_backup
+
+    # ----- Detect Steam ------------------------------------------------------
+    detect_steam_dir
+
+    # ----- Verify protontricks ------------------------------------------------
+    check_protontricks
+
+    # ----- Ask for CS II prefix ---------------------------------------------
+    ask_csii_prefix
+
+    # ----- Ask for Skyve location -------------------------------------------
+    ask_skyve_path
+
+    # ------------------------------------------------------------------------
+    #  Fixed values for the rest of the script
+    # ------------------------------------------------------------------------
+    STEAM_ID="949230"                         # CS II AppID (hard‑coded for clarity)
+
+    # Full path to the executable that will be launched
+    EXECUTABLE="${STEAM_DIR}/${SKYVE_REL}"
+
+    # ------------------------------------------------------------------------
+    #  Choose an icon – try <exe>.png next to the binary, fall back to a
+    #  generic icon you ship with the script.
+    # ------------------------------------------------------------------------
+    ICON_CANDIDATE="${EXECUTABLE%.*}.png"
+    FALLBACK_ICON="${HOME}/.local/share/icons/skyve-fallback.png"
+
+    if [[ -f "$ICON_CANDIDATE" ]]; then
+        ICON_PATH="$ICON_CANDIDATE"
+    else
+        ICON_PATH="$FALLBACK_ICON"
+    fi
+
+    # ------------------------------------------------------------------------
+    #  Destination for the .desktop file (per‑user, no sudo needed)
+    # ------------------------------------------------------------------------
+    DESKTOP_DIR="${HOME}/.local/share/applications"
+    mkdir -p "$DESKTOP_DIR"
+    DESKTOP_FILE="${DESKTOP_DIR}/skyve.desktop"
+
+    # ------------------------------------------------------------------------
+    #  Write the .desktop entry
+    # ------------------------------------------------------------------------
+    cat > "$DESKTOP_FILE" <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Skyve
+Comment=Skyve Mod Manager for Cities Skylines 2 (installed with Neemo's Skyve installer script)
+Exec=protontricks-launch --appid ${STEAM_ID} "${EXECUTABLE}"
+Icon=${ICON_PATH}
+Terminal=false
+StartupNotify=true
+Categories=Game;Simulation;
+EOF
+
+    chmod 644 "$DESKTOP_FILE"
+
+    # Refresh desktop database if the tool exists (most DEs pick up changes anyway)
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database "$DESKTOP_DIR"
+    fi
+
+    info "✅ All checks passed and the desktop launcher has been created at:"
+    echo "    $DESKTOP_FILE"
+    info "You can now launch Skyve from your application menu."
+}
+
+# -------------------------------------------------------------------------
+#  Execute the script
+# -------------------------------------------------------------------------
+main
