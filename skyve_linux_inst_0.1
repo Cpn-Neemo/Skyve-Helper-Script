@@ -13,7 +13,14 @@ log() {
 }
 
 #Welcome message and cautions
-#CODE GOES HERE
+printf 'Welcome to the Skyve for Cities Skylines II installer script.
+This will attemt to guide and automate the installation of Skyve Mod Manager in your linux enviroment.
+Please make sure you have backed up and saves you have. Its a good idea to have installed Steam / CSII / Skyve (from game PDX Mods page) before running the script.
+The skyve install will probably fail but it will put the files needed in the correct locations....'
+read -n1 -s -r -p $'\nPress any key to continue...'
+echo
+
+
 
 # --------------------------------------------------------------
 #  Question‑helper functions
@@ -137,10 +144,56 @@ if [[ ! -d "$STEAM_ID" ]]; then
 fi
 
 #Check if protontricks installed 
-#CODE goes here
+
+# -------------------------------------------------
+# Function: check for protontricks
+# -------------------------------------------------
+check_protontricks() {
+    if command -v protontricks >/dev/null 2>&1; then
+        # protontricks is present – nothing else to do
+        return 0
+    else
+        # Not found – give the user clear install instructions
+        echo "⚠️  protontricks is not installed on this system."
+        echo
+        echo "You can install it from your distribution’s package manager or app store:"
+        echo
+        case "$(uname -s)" in
+            Linux*)
+                # Detect common Linux families
+                if command -v apt-get >/dev/null 2>&1; then
+                    echo "  • Debian/Ubuntu:   sudo apt-get update && sudo apt-get install protontricks"
+                elif command -v dnf >/dev/null 2>&1; then
+                    echo "  • Fedora:         sudo dnf install protontricks"
+                elif command -v pacman >/dev/null 2>&1; then
+                    echo "  • Arch Linux:     sudo pacman -Sy protontricks"
+                elif command -v zypper >/dev/null 2>&1; then
+                    echo "  • openSUSE:       sudo zypper install protontricks"
+                else
+                    echo "  • Your distro’s package manager (search for “protontricks”)."
+                fi
+                ;;
+            Darwin*)
+                # macOS – Homebrew is the usual source
+                echo "  • macOS (Homebrew):  brew install protontricks"
+                ;;
+            *)
+                echo "  • Please refer to your OS’s software repository or app store."
+                ;;
+        esac
+        echo
+        echo "After installing, re‑run the script."
+        return 1
+    fi
+}
+if ! check_protontricks; then
+    # Exit early because we can’t continue without protontricks
+    exit 1
+fi
+
 
 #Where is CSII installed? Enter for default
-#CODE goes here
+
 
 #Where is skyve installed? Enter for default (using the steam directory above as referance)
 #  `~/.local/share/Steam/steamapps/compatdata/949230/pfx/drive_c/Program Files (x86)/Skyve CS-II` 
@@ -254,6 +307,6 @@ fi
 
 echo "✅ Desktop launcher created at: ${DESKTOP_FILE}"
 
-#Finished script, remember not to use continue from inside CSII and launch game from within skyve.
+#Finished script, remember not to use continue from inside CSII and launch game from within Skyve.
 #Make backups of your saves. Auto backs do not always work with Skyve in Linux make sure you check regularly.
 #Share this script if it helped you.
