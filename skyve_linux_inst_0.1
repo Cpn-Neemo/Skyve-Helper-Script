@@ -171,7 +171,7 @@ if net48_installed; then
     log ".NET 4.8 is already installed – continuing."
 else
     log "Now installing .NET 4.8 dependency…"
-    protontricks "$STEAM_ID" -q dotnet48 &
+    yes | protontricks "$STEAM_ID" -q dotnet48 &
     dotnet_pid=$!
     wait "$dotnet_pid"
 
