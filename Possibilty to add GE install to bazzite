@@ -1,0 +1,56 @@
+Thought about thisSearched the web for "steam compatibility settings command line script linux proton"5 resultsSearched the web for "steam compatibilitytool.cfg edit command line proton automation script"5 resultsThought about thisSearched the web for "steam compatibilitytool.cfg edit command line proton automation script"5 resultsThought about thisYes, you can change Steam's compatibility settings from a command-line script. There are several approaches depending on your needs:Method 1: Edit compatibilitytool.cfg DirectlyEach game has a configuration file that specifies which Proton version to use:# Path to a specific game's config
+~/.steam/steam/steamapps/compatdata/<APPID>/compatibilitytool.cfgExample script to set a specific Proton version for one game:
+#!/bin/bash
+APPID="123456"  # Replace with your game's AppID
+PROTON_VERSION="proton_ge_9-12"  # Match the folder name exactly
+
+echo "compat_tool_name=$PROTON_VERSION" > \
+  "$HOME/.steam/steam/steamapps/compatdata/$APPID/compatibilitytool.cfg"
+Batch update multiple games:
+#!/bin/bash
+PROTON="proton_8.0"
+
+for app in "$HOME/.steam/steam/steamapps/compatdata"/*/; do
+    APPID=$(basename "$app")
+    echo "compat_tool_name=$PROTON" > "$app/compatibilitytool.cfg"
+    echo "Set $APPID to $PROTON"
+done
+Method 2: Environment Variables at Launch
+You can override the compatibility tool when launching a game:
+# Set Proton version via environment variable
+STEAM_COMPAT_TOOL_PATH="/path/to/Proton/version" \
+STEAM_COMPAT_DATA_PATH="$HOME/.steam/steam/steamapps/compatdata/<APPID>" \
+steam://run/<APPID>
+Or use the Steam URL scheme with beta parameters:
+steam://run/<APPID>//?beta=proton
+Method 3: Using steamtinkerlaunch
+This is a more robust tool for managing compatibility settings:
+# Install steamtinkerlaunch
+steamtinkerlaunch compat add
+
+# Set compatibility tool for a specific game
+steamtinkerlaunch compat set <APPID> proton_ge_9-12
+Method 4: Using Protontricks
+While protontricks is primarily for installing Windows dependencies, you can combine it with other methods:
+# First set the compatibility tool, then use protontricks for dependencies
+echo "compat_tool_name=proton_ge_9-12" > \
+  "$HOME/.steam/steam/steamapps/compatdata/<APPID>/compatibilitytool.cfg"
+
+protontricks <APPID> winetricks_command
+Important Notes
+
+Steam must be restarted after editing compatibilitytool.cfg for changes to take effect
+Folder names matter - match the exact Proton folder name in ~/.steam/steam/steamapps/compatibilitytools.d/
+Steam may overwrite settings - if you change settings through the GUI, it will overwrite your script's changes
+For Flatpak Steam - paths may differ (check ~/.var/app/com.valvesoftware.Steam/)
+
+Finding Your Game's AppID
+You can find the AppID from:
+
+Steam store page URL (e.g., store.steampowered.com/app/123456/)
+Steam library (right-click → Properties)
+Or list all compatdata folders:
+ls ~/.steam/steam/steamapps/compatdata/
+
+
+Would you like help creating a specific script for your use case, or do you need assistance finding the correct Proton folder names on your system?
