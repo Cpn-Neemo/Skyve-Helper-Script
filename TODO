@@ -1,7 +1,225 @@
-# Code for setting up variables for file paths
+Skyve Helper Script - TODO List
 
-#Code for yes or no questions
+    Project Status: Active Development (Last Updated: 26 Apr 2026)
 
-#Code for checking CSII id
+📋 Quick Summary
 
-#Testing
+This document tracks the implementation status, known issues, and future work for the Skyve Mod Manager installer script for Cities Skylines II on Linux.
+🔴 Critical Issues (Fix Before Release)
+1. Typos and Spelling Errors
+
+    Fix "attemt" → "attempt" (welcome message)
+    Fix "resposibility" → "responsibility" (header comment)
+    Fix "enviroment" → "environment" (welcome message)
+    Fix "Cpn-Neemo" → "Con-Neemo" or correct author name
+    Fix "saved saves" → "saved games" (welcome message)
+
+2. Incomplete Variable Definitions
+
+    SKYVE_PATH is commented out in first script version
+    SKYVE_REL calculation needs validation for edge cases
+    Verify EXECUTABLE path construction works with custom Steam directories
+
+3. Error Handling Gaps
+
+    Add timeout handling for protontricks .NET installation (can hang indefinitely)
+    Handle case where update-desktop-database fails silently
+    Add cleanup on script interruption (Ctrl+C)
+    Validate that protontricks-launch command exists before using it
+
+4. Steam Prefix Validation
+
+    Current script checks if $STEAM_ID directory exists but doesn't verify it's a valid Wine prefix
+    Should check for drive_c subdirectory specifically
+    Add warning if prefix appears corrupted or incomplete
+
+🟡 High Priority Features
+1. Dependency Installation
+
+    .NET 4.8 Installation Logic
+        Re-implement from first script version with proper error handling
+        Add progress indication during installation (it can take several minutes)
+        Verify installation succeeded before continuing
+        Handle case where user cancels protontricks dialog
+
+    Font Installation
+        Research which fonts Skyve requires (currently marked as "may need")
+        Add optional font installation step
+        Document which fonts are recommended
+
+2. Proton Compatibility Configuration
+
+    Integrate compatibility tool configuration from research notes:
+
+    # Option A: Direct cfg editing
+    echo "compat_tool_name=proton_ge_9-12" > "$STEAM_DIR/steamapps/compatdata/$STEAM_ID/compatibilitytool.cfg"
+
+    # Option B: Use steamtinkerlaunch if available
+    # Option C: Environment variable override at launch
+
+    Add user choice for Proton version preference
+    Document that Steam restart may be required after changes
+    Handle Flatpak Steam paths differently
+
+3. User Experience Improvements
+
+    Add "Launch Skyve after installation?" prompt (was in first script, removed in second)
+    Add option to skip desktop file creation
+    Show installation progress indicators
+    Add verbose/debug mode for troubleshooting
+    Color-coded output consistency (some sections use colors, others don't)
+
+4. Path Detection Enhancements
+
+    Detect multiple Steam libraries (not just default)
+    Handle non-standard Wine prefix locations
+    Support for Lutris/GOG installations (not just Steam)
+    Better Flatpak Steam path detection (~/.var/app/com.valvesoftware.Steam/)
+
+🟢 Medium Priority Features
+1. Logging and Diagnostics
+
+    Add optional log file creation (--verbose flag)
+    Include system information in logs (distro, Steam version, Proton version)
+    Add diagnostic command to check installation health
+
+2. Update Mechanism
+
+    Check for script updates on startup
+    Version tracking in script header
+    Changelog display option
+
+3. Uninstall Functionality
+
+    Create companion uninstall script
+    Remove desktop file
+    Option to remove .NET dependencies (careful not to affect other games)
+
+4. Internationalization
+
+    Support for non-English terminals (UTF-8 handling)
+    Consider localization for user prompts
+
+🔵 Low Priority / Nice-to-Have
+1. Advanced Features
+
+    Batch installation for multiple users
+    Silent/unattended install mode for sysadmins
+    Configuration file for persistent preferences
+    Integration with mod backup/restore system
+
+2. Documentation
+
+    Add inline code documentation (shellcheck compliant)
+    Create FAQ section
+    Troubleshooting guide for common errors
+    Video tutorial link
+
+3. Testing Infrastructure
+
+    ShellCheck integration in CI/CD
+    Automated tests for path detection logic
+    Test matrix for different distributions
+
+📁 File Structure Recommendations
+
+Current state is fragmented. Consider reorganizing:
+
+skyve-helper/
+├── install.sh              # Main entry point
+├── lib/
+│   ├── utils.sh           # Helper functions
+│   ├── checks.sh          # Validation routines
+│   └── installers.sh      # Dependency installers
+├── assets/
+│   └── skyve-icon.png     # Fallback icon
+├── tests/
+│   └── test_paths.sh      # Unit tests
+├── docs/
+│   ├── TROUBLESHOOTING.md
+│   └── FAQ.md
+├── README.md
+└── TODO.md                # This file
+
+🧪 Testing Checklist
+Pre-Release Tests
+
+    Test on Ubuntu 22.04 (Steam native)
+    Test on Ubuntu 22.04 (Flatpak Steam)
+    Test on Fedora (dnf package manager)
+    Test on Arch Linux (pacman)
+    Test on openSUSE (zypper)
+    Test with existing Skyve installation
+    Test with fresh CSII installation
+    Test with custom Steam library location
+    Test interrupt handling (Ctrl+C at various points)
+    Test with missing dependencies (protontricks not installed)
+    Test desktop file creation and launch
+
+Edge Cases
+
+    User declines all optional features
+    User provides invalid paths
+    Disk space insufficient
+    Network unavailable (for updates)
+    Read-only filesystem
+    Multiple Steam accounts on same machine
+
+📝 Documentation Updates Needed
+README.md
+
+    Remove "NOT READY" disclaimer when stable
+    Add installation prerequisites clearly
+    Add usage examples
+    Add screenshot of expected output
+    Link to Skyve official documentation
+    Add license information
+    Add contribution guidelines
+
+Inline Comments
+
+    Add function purpose comments
+    Document expected return values
+    Explain complex path calculations
+    Add TODO markers for future work
+
+🐛 Known Bugs (From Code Review)
+
+    First script version: .NET 4.8 installation uses yes | protontricks ... & which runs in background but wait may not capture exit status correctly
+    Both versions: No validation that Skyve.exe actually exists in detected directory
+    Both versions: Icon fallback path may not exist on user's system
+    Second script version: SKYVE_REL calculation assumes specific directory structure that may vary
+    Both versions: No check for sufficient disk space before installation
+
+🎯 Milestone Goals
+v0.1 Alpha (Current)
+
+    Basic installation flow working
+    Desktop file creation functional
+    Safety checks in place
+
+v0.2 Beta
+
+    All dependencies installed automatically
+    Proton configuration integrated
+    Tested on 3+ distributions
+
+v1.0 Stable
+
+    All critical issues resolved
+    Comprehensive documentation
+    Uninstall script available
+    User feedback incorporated
+
+📞 External Resources
+
+    Protontricks GitHub
+    SteamTinkerLaunch
+    Proton DB
+
+🔄 Last Modified
+
+    26 Apr 2026: Initial TODO.md created from codebase analysis
+    04 Feb 2026: Project started (README date)
+
+Generated by Lumo AI Assistant - Analyzed 5 files from repository
